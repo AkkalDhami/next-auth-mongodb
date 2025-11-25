@@ -26,7 +26,9 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
+import { useAppDispatch } from "@/hooks/use-store";
 import { useRegisterMutation } from "@/redux/features/auth/authApi";
+import { setCredentials } from "@/redux/features/auth/authSlice";
 import { SignupFormData, SignupSchema } from "@/validators/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
@@ -34,11 +36,10 @@ import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { z } from "zod";
 
 export default function Register(): React.JSX.Element {
   const [register, { isLoading, error }] = useRegisterMutation();
-
+  const dispatch = useAppDispatch();
   const router = useRouter();
 
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -60,16 +61,22 @@ export default function Register(): React.JSX.Element {
       const res = await register(values).unwrap();
       if (res.success) {
         toast.success(res.message as string);
-        // dispatch(res.data.data);
-        router.push("/login");
+        dispatch(
+          setCredentials({
+            email: res?.data?.email,
+            id: res?.data?.id,
+            name: res?.data?.name,
+          })
+        );
+        router.push("/signin");
         return;
       }
-      if (!res.data.success) {
+      if (!res?.data?.success) {
         console.log(res);
-        toast.error(res.data.message as string);
+        toast.error(res?.data?.message as string);
         return;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
       toast.error((error?.data?.message as string) || "Something went wrong.");
     }
@@ -215,7 +222,6 @@ export default function Register(): React.JSX.Element {
             </Button>
           </form>
         </Form>
-
       </CardContent>
       <BorderBeam
         duration={4}

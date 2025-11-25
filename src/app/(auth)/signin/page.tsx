@@ -29,7 +29,6 @@ import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Spinner } from "@/components/ui/spinner";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -37,7 +36,8 @@ import { BorderBeam } from "@/components/ui/border-beam";
 import { useAppDispatch, useAppSelector } from "@/hooks/use-store";
 import { useLoginMutation } from "@/redux/features/auth/authApi";
 import { SigninFormData, SigninSchema } from "@/validators/auth";
-import { setCredentials } from "@/redux/features/auth/authSlice";
+import { setCredentials, setOtpType } from "@/redux/features/auth/authSlice";
+import SocialSignin from "@/components/auth/social-login";
 
 export default function Login(): React.JSX.Element {
   const dispatch = useAppDispatch();
@@ -60,16 +60,16 @@ export default function Login(): React.JSX.Element {
     try {
       const res = await login(values).unwrap();
 
+      console.log({ res });
       if (res.success) {
-        console.log({ res });
         dispatch(
           setCredentials({
             email: res?.data?.email,
-            id: res?.data?.id,
+            id: res?.data?._id,
             name: res?.data?.name,
-            role: res?.data?.role,
           })
         );
+        dispatch(setOtpType({ otpType: "email-verification" }));
         toast.success(res.message as string);
         router.push("/email-verify");
         return;
@@ -78,7 +78,7 @@ export default function Login(): React.JSX.Element {
         toast.error(res.data.message as string);
         return;
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.log(error);
       toast.error((error?.data?.message as string) || "Something went wrong.");
     }
@@ -178,7 +178,7 @@ export default function Login(): React.JSX.Element {
             </Button>
           </form>
         </Form>
-
+        <SocialSignin />
       </CardContent>
       <BorderBeam
         duration={4}
