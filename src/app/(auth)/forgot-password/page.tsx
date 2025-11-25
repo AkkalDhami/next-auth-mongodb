@@ -21,11 +21,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { useAppSelector } from "@/hooks/use-store";
+import { useAppDispatch, useAppSelector } from "@/hooks/use-store";
 import {
   useRequestOtpMutation,
   useVerifyOtpMutation,
 } from "@/redux/features/auth/authApi";
+import { setCredentials, setOtpType } from "@/redux/features/auth/authSlice";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -42,7 +43,7 @@ const formSchema = z.object({
 
 export default function Page(): React.JSX.Element {
   const [getEmail, setGetEmail] = useState<string>("");
-
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
 
@@ -66,10 +67,12 @@ export default function Page(): React.JSX.Element {
       if (res.success) {
         toast.success(res.message as string);
         setGetEmail(values.email);
+        dispatch(setOtpType({ otpType: "password-reset" }));
+        dispatch(setCredentials({ email: values.email || getEmail }));
         return;
       }
-      if (!res.data.success) {
-        toast.error(res.data.message as string);
+      if (!res?.data?.success) {
+        toast.error(res?.data?.message as string);
         return;
       }
     } catch (error: any) {
@@ -89,6 +92,7 @@ export default function Page(): React.JSX.Element {
       const res = await verifyOtp({
         email: (getEmail as string) || (user?.email as string),
         otpCode: otp,
+        otpType: "password-reset",
       }).unwrap();
 
       if (res.success) {
@@ -97,11 +101,11 @@ export default function Page(): React.JSX.Element {
         router.push("/reset-password");
         return;
       }
-      if (!res.data.success) {
-        toast.error(res.data.message as string);
+      if (!res?.data?.success) {
+        toast.error(res?.data?.message as string);
         return;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
       toast.error(
         (error?.data?.data as string) ||
@@ -165,7 +169,7 @@ export default function Page(): React.JSX.Element {
 
             <div className="text-sm mt-4 text-muted-foreground">
               Remember password ?{" "}
-              <Link href="/login" className="text-primary-500 hover:underline">
+              <Link href="/signin" className="text-primary-500 hover:underline">
                 Sign in
               </Link>
             </div>

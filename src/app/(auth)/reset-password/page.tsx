@@ -14,15 +14,15 @@ const Page = () => {
       const res = await resetPassword(data).unwrap();
       if (res.success) {
         toast.success(res.message as string);
-        router.push("/login");
+        router.push("/signin");
         return;
       }
 
-      if (!res.data.success) {
-        toast.error(res.data.message as string);
+      if (!res?.data?.success) {
+        toast.error(res?.data?.message as string);
         return;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
       toast.error((error?.data?.message as string) || "Something went wrong.");
     }

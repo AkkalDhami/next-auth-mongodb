@@ -11,8 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { useAppSelector } from "@/hooks/use-store";
+import { useAppDispatch, useAppSelector } from "@/hooks/use-store";
 import { useVerifyOtpMutation } from "@/redux/features/auth/authApi";
+import { setOtpType } from "@/redux/features/auth/authSlice";
 import { useRouter } from "next/navigation";
 
 import React, { useEffect, useState } from "react";
@@ -20,16 +21,17 @@ import toast from "react-hot-toast";
 
 export default function EmailVerify(): React.JSX.Element {
   const [otp, setOtp] = useState("");
+  const dispatch = useAppDispatch();
 
   const router = useRouter();
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, otpType } = useAppSelector((state) => state.auth);
   console.log(user);
   useEffect(() => {
-    if (!user?.email) {
+    if (!user?.email || !otpType) {
       router.push("/signin");
     }
-  }, [user, router]);
+  }, [user, router, otpType]);
 
   const handleOtpChange = (value: string) => {
     setOtp(value);
@@ -40,17 +42,19 @@ export default function EmailVerify(): React.JSX.Element {
       const res = await verifyOtp({
         email: user?.email as string,
         otpCode: otp,
+        otpType: otpType,
       }).unwrap();
       console.log({ res });
       if (res.success) {
         setOtp("");
         toast.success(res.message as string);
+        dispatch(setOtpType({ otpType: null }));
         router.push("/profile");
 
         return;
       }
-      if (!res.data.success) {
-        toast.error(res.data.message as string);
+      if (!res?.data?.success) {
+        toast.error(res?.data?.message as string);
         return;
       }
     } catch (error: any) {
@@ -83,8 +87,7 @@ export default function EmailVerify(): React.JSX.Element {
         <Button
           onClick={handleSubmit}
           disabled={otp.length !== 6 || isLoading}
-          className="px-4 sm:h-10 mt-3 w-full py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600  disabled:bg-zinc-400 disabled:cursor-not-allowed"
-        >
+          className="px-4 sm:h-10 mt-3 w-full py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600  disabled:bg-zinc-400 disabled:cursor-not-allowed">
           {isLoading ? (
             <>
               <Spinner />
