@@ -57,11 +57,12 @@ export const SignupSchema = z
     {
       message: "Passwords do not match",
       path: ["confirmPassword"],
-    },
+    }
   );
 
 export const ResetPasswordSchema = z
   .object({
+    email: emailSchema.optional(),
     newPassword: passwordSchema,
     confirmNewPassword: z.string().min(1, "Confirm new password is required"),
   })
@@ -86,6 +87,17 @@ export const DeleteAccountSchema = z.object({
     .enum(["soft", "hard"], { error: "Type must be either soft or hard" })
     .default("soft"),
 });
+
+export const ProfileSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  bio: z
+    .string({ error: "Bio must be a string!" })
+    .max(500, "Bio must be at most 500 characters")
+    .optional(),
+  avatarFile: z.instanceof(File).optional(),
+});
+
+export type ProfileFormData = z.infer<typeof ProfileSchema>;
 
 export type OtpRequest = z.infer<typeof OtpRequestSchema>;
 export type OtpVerify = z.infer<typeof OtpVerifySchema>;
