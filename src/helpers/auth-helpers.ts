@@ -13,7 +13,12 @@ import { NextRequest } from "next/server";
 import argon2 from "argon2";
 import Otp from "@/models/otp.model";
 import { STATUS_CODES } from "@/constants/status-codes";
-import { verifyAccessToken } from "./jwt-helpers";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  verifyRefreshToken,
+} from "./jwt-helpers";
 import User from "@/models/user.model";
 import dbConnect from "@/configs/db";
 
@@ -168,36 +173,51 @@ export async function sendAndSaveOtp(
 
 export const getCurrentAuthUser = async () => {
   const cookieStore = await cookies();
-
   const accessToken = cookieStore.get("accessToken")?.value;
   const refreshToken = cookieStore.get("refreshToken")?.value;
-
   if (!accessToken || !refreshToken) return null;
-  const dd = verifyAccessToken(accessToken);
-  if (!dd) return null;
-  const { _id: userId } = dd;
 
-  await dbConnect();
+  try {
+    const dd = verifyAccessToken(accessToken);
+    if (!dd) return null;
+    const { _id: userId } = dd;
 
-  const user = await User.findOne({ _id: userId });
+    await dbConnect();
 
-  if (!user) return null;
-  const userData = {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    bio: user.bio,
-    role: user.role,
-    isEmailVerified: user.isEmailVerified,
-    avatar: user.avatar,
-    lastLoginAt: user.lastLoginAt,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    isDeleted: user.isDeleted,
-    lockUntil: user.lockUntil,
-  };
+    const user = await User.findOne({ _id: userId });
 
-  return userData;
+    if (!user) return null;
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      bio: user.bio,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+      avatar: user.avatar,
+      lastLoginAt: user.lastLoginAt,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      isDeleted: user.isDeleted,
+      lockUntil: user.lockUntil,
+    };
+
+    return userData;
+  } catch (error: any) {
+    if (error.message === "jwt expired") {
+      const decoded = verifyRefreshToken(refreshToken);
+      console.log({ refreshToken, decoded });
+      if (!decoded) return null;
+      const user = await User.findOne({ _id: decoded._id });
+      if (!user) return null;
+
+      const newAccessToken = generateAccessToken(decoded._id);
+
+      const newRefreshToken = generateRefreshToken(decoded._id);
+
+      await setAuthCookies(newAccessToken, newRefreshToken);
+    }
+  }
 };
 
 export const generateRandomToken = (id: string) => {
