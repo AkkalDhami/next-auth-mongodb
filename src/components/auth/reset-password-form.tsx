@@ -24,8 +24,16 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Spinner } from "../ui/spinner";
-import { ChangePasswordFormData, ChangePasswordSchema, ResetPasswordFormData, ResetPasswordSchema } from "@/validators/auth";
+import {
+  ChangePasswordFormData,
+  ChangePasswordSchema,
+  ResetPasswordFormData,
+  ResetPasswordSchema,
+} from "@/validators/auth";
 import { BorderBeam } from "../ui/border-beam";
+import { useAppDispatch, useAppSelector } from "@/hooks/use-store";
+import { setOtpType } from "@/redux/features/auth/authSlice";
+import { redirect } from "next/navigation";
 
 interface ResetPasswordFormProps extends React.HTMLAttributes<HTMLFormElement> {
   className?: string;
@@ -37,14 +45,16 @@ export function ResetPasswordForm({
   onsubmit,
   isChangePassword = false,
 }: ResetPasswordFormProps) {
+  const dispatch = useAppDispatch();
+  const { user, otpType } = useAppSelector((state) => state.auth);
+  useEffect(() => {
+    if (otpType !== "password-reset") redirect("/signin");
+  }, [otpType]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
 
   const form = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(
-      isChangePassword ? ChangePasswordSchema : ResetPasswordSchema,
-    ),
+    resolver: zodResolver(ResetPasswordSchema),
     mode: "onTouched",
     defaultValues: {
       newPassword: "",
@@ -52,19 +62,19 @@ export function ResetPasswordForm({
     },
   });
 
-  useEffect(() => {
-    if (apiError) {
-      toast.error(apiError);
-      setApiError(null);
-    }
-  }, [apiError]);
-
-  const handleFormSubmit: SubmitHandler<ChangePasswordFormData> = async (data) => {
+  const handleFormSubmit: SubmitHandler<ChangePasswordFormData> = async (
+    data
+  ) => {
+    if (otpType !== "password-reset")
+      return toast.error("Please request for forgot password first!");
     try {
-      await onsubmit(data);
+      if (!user?.email) {
+        return toast.error("Email is required");
+      }
+      await onsubmit({ ...data, email: user?.email });
+      dispatch(setOtpType({ otpType: null }));
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
-      setApiError("Something went wrong. Please try again.");
     }
   };
 
@@ -108,7 +118,7 @@ export function ResetPasswordForm({
       <CardHeader>
         <CardTitle>
           <h2 className="text-xl sm:text-2xl font-semibold">
-            {isChangePassword ? "Change" : "Reset"} Your Password
+            Reset Your Password
           </h2>
         </CardTitle>
       </CardHeader>
@@ -117,8 +127,7 @@ export function ResetPasswordForm({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleFormSubmit)}
-            className="space-y-4"
-          >
+            className="space-y-4">
             <FormField
               control={form.control}
               name="newPassword"
@@ -143,8 +152,7 @@ export function ResetPasswordForm({
                           <InputGroupButton
                             onClick={() => setShowPassword(!showPassword)}
                             type="button"
-                            className="bg-transparent hover:bg-transparent dark:hover:bg-transparent"
-                          >
+                            className="bg-transparent hover:bg-transparent dark:hover:bg-transparent">
                             {showPassword ? (
                               <EyeOff className="text-muted-foreground size-4" />
                             ) : (
@@ -163,15 +171,13 @@ export function ResetPasswordForm({
                       aria-valuenow={strengthScore}
                       aria-valuemin={0}
                       aria-valuemax={4}
-                      aria-label="Password strength"
-                    >
+                      aria-label="Password strength">
                       <div
                         className={`h-full transition-all duration-500 ease-out`}
                         style={{
                           width: `${(strengthScore / 4) * 100}%`,
                           backgroundColor: getStrengthColor(strengthScore),
-                        }}
-                      ></div>
+                        }}></div>
                     </div>
 
                     <p className="mb-2 text-sm font-medium text-foreground">
@@ -180,8 +186,7 @@ export function ResetPasswordForm({
 
                     <ul
                       className="space-y-2"
-                      aria-label="Password requirements"
-                    >
+                      aria-label="Password requirements">
                       {strength.map((req, index) => (
                         <li key={index} className="flex items-center gap-2">
                           {req.met ? (
@@ -200,10 +205,9 @@ export function ResetPasswordForm({
                           <span
                             className={`text-sm ${
                               req.met
-                                ? "text-emerald-600"
+                                ? "text-green-600"
                                 : "text-muted-foreground"
-                            }`}
-                          >
+                            }`}>
                             {req.text}
                           </span>
                         </li>
@@ -238,8 +242,7 @@ export function ResetPasswordForm({
                             setShowConfirmPassword(!showConfirmPassword)
                           }
                           type="button"
-                          className="bg-transparent hover:bg-transparent dark:hover:bg-transparent"
-                        >
+                          className="bg-transparent hover:bg-transparent dark:hover:bg-transparent">
                           {showConfirmPassword ? (
                             <EyeOff className="text-muted-foreground size-4" />
                           ) : (
