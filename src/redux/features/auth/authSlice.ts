@@ -1,3 +1,4 @@
+import { OTP_TYPES } from "@/constants/auth-constants";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface AuthState {
@@ -5,12 +6,13 @@ interface AuthState {
     id: number | null;
     name: string | null;
     email: string | null;
-    role: string;
   } | null;
+  otpType: (typeof OTP_TYPES)[number] | null;
 }
 
 const initialState: AuthState = {
   user: null,
+  otpType: null,
 };
 
 const authSlice = createSlice({
@@ -20,26 +22,28 @@ const authSlice = createSlice({
     setCredentials: (
       state,
       action: PayloadAction<{
-        accessToken?: string | null;
         email?: string | null;
         name?: string | null;
         id?: number | null;
-        role?: string | null;
       }>
     ) => {
-      console.log(action.payload);
       state.user = {
         email: action.payload?.email || null,
         name: action.payload?.name || null,
         id: action.payload?.id || null,
-        role: action.payload?.role || "",
       };
     },
     logoutUser: (state) => {
       state.user = null;
     },
+    setOtpType: (
+      state,
+      action: PayloadAction<{ otpType: (typeof OTP_TYPES)[number] | null }>
+    ) => {
+      state.otpType = action.payload.otpType;
+    },
   },
 });
 
-export const { setCredentials, logoutUser } = authSlice.actions;
+export const { setCredentials, logoutUser, setOtpType } = authSlice.actions;
 export default authSlice.reducer;

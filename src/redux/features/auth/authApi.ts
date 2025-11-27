@@ -3,19 +3,21 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const BASE_URL = process.env.APP_URL || "http://localhost:3000";
 
-interface User {
+export interface User {
   avatar: {
     url: string;
     public_id: string;
   };
   email: string;
+  bio: string;
   id: number;
   isEmailVerified: boolean;
   lastLoginAt: string;
   name: string;
-  phone: string;
-  role: "applicant" | "recruiter";
-  username: string;
+  role: "admin" | "user";
+  createdAt: string;
+  updatedAt: string;
+  isDeleted: boolean;
 }
 
 interface ApiResponse {
@@ -27,7 +29,6 @@ interface ApiResponse {
     email?: string;
     id?: number;
     name?: string;
-    role?: string;
     user?: User;
   };
 }
@@ -41,19 +42,16 @@ export const authApi = createApi({
   endpoints: (builder) => ({
     login: builder.mutation<ApiResponse, { email: string; password: string }>({
       query: (body) => ({
-        url: "/login",
+        url: "/signin-user",
         method: "POST",
         body,
       }),
       invalidatesTags: ["Auth"],
     }),
 
-    register: builder.mutation<
-      ApiResponse,
-      { name: string; email: string; role: string }
-    >({
+    register: builder.mutation<ApiResponse, { name: string; email: string }>({
       query: (body) => ({
-        url: "/register",
+        url: "/signup-user",
         method: "POST",
         body,
       }),
@@ -65,7 +63,7 @@ export const authApi = createApi({
       { email: string; type: (typeof OTP_TYPES)[number] }
     >({
       query: (body) => ({
-        url: "/otp-request",
+        url: "/request-otp",
         method: "POST",
         body,
       }),
@@ -74,10 +72,14 @@ export const authApi = createApi({
 
     verifyOtp: builder.mutation<
       ApiResponse,
-      { email: string; otpCode: string }
+      {
+        email: string;
+        otpCode: string;
+        otpType: (typeof OTP_TYPES)[number] | null;
+      }
     >({
       query: (body) => ({
-        url: "/otp-verify",
+        url: "/verify-otp",
         method: "POST",
         body,
       }),
@@ -106,7 +108,7 @@ export const authApi = createApi({
 
     updateProfile: builder.mutation<
       ApiResponse,
-      { name: string; avatar?: string; username: string; phone: string }
+      { name: string; avatar?: string }
     >({
       query: (body) => ({
         url: "/update-profile",
@@ -123,6 +125,15 @@ export const authApi = createApi({
       }),
       invalidatesTags: ["Auth"],
     }),
+
+    deleteAccount: builder.mutation<ApiResponse, { type: "soft" | "hard" }>({
+      query: (body) => ({
+        url: "/delete-account",
+        method: "DELETE",
+        body,
+      }),
+      invalidatesTags: ["Auth"],
+    }),
   }),
 });
 
@@ -135,4 +146,5 @@ export const {
   useLogoutMutation,
   useUpdateProfileMutation,
   useGetProfileQuery,
+  useDeleteAccountMutation,
 } = authApi;
